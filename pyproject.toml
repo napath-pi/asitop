@@ -1,6 +1,6 @@
 [project]
 name = "asitop"
-version = "0.0.22"
+version = "0.0.23"
 description = "Performance monitoring CLI tool for Apple Silicon"
 license = "MIT"
 readme = "README.md"
@@ -12,9 +12,14 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 dependencies = [
+    "blessed",
     "dashing",
     "psutil",
+    "wcwidth",
 ]
+
+[project.scripts]
+asitop = "asitop.asitop:main"
 
 [build-system]
 requires = ["hatchling"]
