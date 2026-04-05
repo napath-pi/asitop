@@ -186,11 +186,6 @@ def main(argv=None):
 
     half_width = max(12, terminal_width // 2 - 8)
     full_width = max(20, terminal_width - 6)
-    cpu_title = compact_title(
-        soc_info_dict["name"],
-        f'{soc_info_dict["e_core_count"]}E+{soc_info_dict["p_core_count"]}P+{soc_info_dict["gpu_core_count"]}G'
-    )
-    usage_gauges.title = clip_text(cpu_title, full_width)
     cpu_max_power = soc_info_dict["cpu_max_power"]
     gpu_max_power = soc_info_dict["gpu_max_power"]
     ane_max_power = 8.0
@@ -220,6 +215,19 @@ def main(argv=None):
 
     ready = get_reading()
     last_timestamp = ready[-1]
+
+    # Detect cluster layout from first reading
+    cpu_metrics_dict_init = ready[0]
+    has_s_cluster = cpu_metrics_dict_init.get("has_s_cluster", False)
+    low_perf_label = "P" if has_s_cluster else "E"
+    high_perf_label = "S" if has_s_cluster else "P"
+
+    # Update title with correct cluster labels
+    cpu_title = compact_title(
+        soc_info_dict["name"],
+        f'{soc_info_dict["e_core_count"]}{low_perf_label}+{soc_info_dict["p_core_count"]}{high_perf_label}+{soc_info_dict["gpu_core_count"]}G'
+    )
+    usage_gauges.title = clip_text(cpu_title, full_width)
 
     def get_avg(inlist):
         avg = sum(inlist) / len(inlist)
@@ -255,14 +263,14 @@ def main(argv=None):
                         thermal_throttle = "yes"
 
                     cpu1_gauge.title = clip_text(compact_title(
-                        "E",
+                        low_perf_label,
                         f'{cpu_metrics_dict["E-Cluster_active"]}%',
                         f'{cpu_metrics_dict["E-Cluster_freq_Mhz"]}MHz'
                     ), half_width)
                     cpu1_gauge.value = cpu_metrics_dict["E-Cluster_active"]
 
                     cpu2_gauge.title = clip_text(compact_title(
-                        "P",
+                        high_perf_label,
                         f'{cpu_metrics_dict["P-Cluster_active"]}%',
                         f'{cpu_metrics_dict["P-Cluster_freq_Mhz"]}MHz'
                     ), half_width)

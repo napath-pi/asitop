@@ -104,56 +104,52 @@ def parse_cpu_metrics(powermetrics_parse):
             else:
                 return 'P-Cluster', p_core
 
+    e_mapped_clusters = []
+    p_mapped_clusters = []
+
     for cluster in cpu_clusters:
         name = cluster["name"]
         cpu_metric_dict[name+"_freq_Mhz"] = int(cluster["freq_hz"]/(1e6))
         cpu_metric_dict[name+"_active"] = int((1 - cluster["idle_ratio"])*100)
         mapped_name, core_list = _classify(name)
+        if mapped_name == 'E-Cluster':
+            e_mapped_clusters.append(name)
+        else:
+            p_mapped_clusters.append(name)
         for cpu in cluster["cpus"]:
             core_list.append(cpu["cpu"])
             cpu_metric_dict[mapped_name + str(cpu["cpu"]) + "_freq_Mhz"] = int(cpu["freq_hz"] / (1e6))
             cpu_metric_dict[mapped_name + str(cpu["cpu"]) + "_active"] = int((1 - cpu["idle_ratio"]) * 100)
     cpu_metric_dict["e_core"] = e_core
     cpu_metric_dict["p_core"] = p_core
+    cpu_metric_dict["has_s_cluster"] = has_s_cluster
 
-    def _is_cluster_key(key, prefix, suffix):
-        """Match cluster-level keys like E0-Cluster_active but not per-core keys like E-Cluster0_active."""
-        return (key.startswith(prefix) and key.endswith("Cluster" + suffix)
-                and "Cluster" in key)
-
-    # Aggregate E-Cluster metrics when a single "E-Cluster" key is missing
-    # (e.g. M1 Ultra has E0/E1-Cluster, M5 Pro has P0/P1-Cluster mapped to E)
+    # Aggregate cluster metrics using the mapped cluster names
     if "E-Cluster_active" not in cpu_metric_dict:
-        e_cluster_keys = [k[:-len("_active")] for k in cpu_metric_dict
-                          if _is_cluster_key(k, 'E', '_active')]
-        if e_cluster_keys:
+        if e_mapped_clusters:
             cpu_metric_dict["E-Cluster_active"] = int(
-                sum(cpu_metric_dict[k + "_active"] for k in e_cluster_keys) / len(e_cluster_keys))
+                sum(cpu_metric_dict[n + "_active"] for n in e_mapped_clusters) / len(e_mapped_clusters))
         else:
             cpu_metric_dict["E-Cluster_active"] = 0
 
     if "E-Cluster_freq_Mhz" not in cpu_metric_dict:
-        e_freq_keys = [k for k in cpu_metric_dict
-                       if _is_cluster_key(k, 'E', '_freq_Mhz')]
-        if e_freq_keys:
-            cpu_metric_dict["E-Cluster_freq_Mhz"] = max(cpu_metric_dict[k] for k in e_freq_keys)
+        if e_mapped_clusters:
+            cpu_metric_dict["E-Cluster_freq_Mhz"] = max(
+                cpu_metric_dict[n + "_freq_Mhz"] for n in e_mapped_clusters)
         else:
             cpu_metric_dict["E-Cluster_freq_Mhz"] = 0
 
     if "P-Cluster_active" not in cpu_metric_dict:
-        p_cluster_keys = [k[:-len("_active")] for k in cpu_metric_dict
-                          if _is_cluster_key(k, 'P', '_active')]
-        if p_cluster_keys:
+        if p_mapped_clusters:
             cpu_metric_dict["P-Cluster_active"] = int(
-                sum(cpu_metric_dict[k + "_active"] for k in p_cluster_keys) / len(p_cluster_keys))
+                sum(cpu_metric_dict[n + "_active"] for n in p_mapped_clusters) / len(p_mapped_clusters))
         else:
             cpu_metric_dict["P-Cluster_active"] = 0
 
     if "P-Cluster_freq_Mhz" not in cpu_metric_dict:
-        p_freq_keys = [k for k in cpu_metric_dict
-                       if _is_cluster_key(k, 'P', '_freq_Mhz')]
-        if p_freq_keys:
-            cpu_metric_dict["P-Cluster_freq_Mhz"] = max(cpu_metric_dict[k] for k in p_freq_keys)
+        if p_mapped_clusters:
+            cpu_metric_dict["P-Cluster_freq_Mhz"] = max(
+                cpu_metric_dict[n + "_freq_Mhz"] for n in p_mapped_clusters)
         else:
             cpu_metric_dict["P-Cluster_freq_Mhz"] = 0
     # power
