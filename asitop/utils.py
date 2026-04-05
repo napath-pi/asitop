@@ -166,42 +166,49 @@ def get_soc_info():
         "p_core_count": p_core_count,
         "gpu_core_count": get_gpu_cores()
     }
-    # TDP (power)
-    if soc_info["name"] == "Apple M1 Max":
-        soc_info["cpu_max_power"] = 30
-        soc_info["gpu_max_power"] = 60
-    elif soc_info["name"] == "Apple M1 Pro":
-        soc_info["cpu_max_power"] = 30
-        soc_info["gpu_max_power"] = 30
-    elif soc_info["name"] == "Apple M1":
-        soc_info["cpu_max_power"] = 20
-        soc_info["gpu_max_power"] = 20
-    elif soc_info["name"] == "Apple M1 Ultra":
-        soc_info["cpu_max_power"] = 60
-        soc_info["gpu_max_power"] = 120
-    elif soc_info["name"] == "Apple M2":
-        soc_info["cpu_max_power"] = 25
-        soc_info["gpu_max_power"] = 15
-    else:
-        soc_info["cpu_max_power"] = 20
-        soc_info["gpu_max_power"] = 20
-    # bandwidth
-    if soc_info["name"] == "Apple M1 Max":
-        soc_info["cpu_max_bw"] = 250
-        soc_info["gpu_max_bw"] = 400
-    elif soc_info["name"] == "Apple M1 Pro":
-        soc_info["cpu_max_bw"] = 200
-        soc_info["gpu_max_bw"] = 200
-    elif soc_info["name"] == "Apple M1":
-        soc_info["cpu_max_bw"] = 70
-        soc_info["gpu_max_bw"] = 70
-    elif soc_info["name"] == "Apple M1 Ultra":
-        soc_info["cpu_max_bw"] = 500
-        soc_info["gpu_max_bw"] = 800
-    elif soc_info["name"] == "Apple M2":
-        soc_info["cpu_max_bw"] = 100
-        soc_info["gpu_max_bw"] = 100
-    else:
-        soc_info["cpu_max_bw"] = 70
-        soc_info["gpu_max_bw"] = 70
+
+    # NOTE:
+    # - bandwidth values below are based on Apple's published unified memory bandwidth
+    # - power values below are estimates / heuristics, not Apple-published TDPs
+
+    soc_specs = {
+        # M1 series
+        "Apple M1":       {"cpu_power": 20, "gpu_power": 20,  "cpu_bw": 70,  "gpu_bw": 70},
+        "Apple M1 Pro":   {"cpu_power": 30, "gpu_power": 30,  "cpu_bw": 200, "gpu_bw": 200},
+        "Apple M1 Max":   {"cpu_power": 30, "gpu_power": 60,  "cpu_bw": 250, "gpu_bw": 400},
+        "Apple M1 Ultra": {"cpu_power": 60, "gpu_power": 120, "cpu_bw": 500, "gpu_bw": 800},
+
+        # M2 series
+        "Apple M2":       {"cpu_power": 25, "gpu_power": 15,  "cpu_bw": 100, "gpu_bw": 100},
+        "Apple M2 Pro":   {"cpu_power": 30, "gpu_power": 30,  "cpu_bw": 200, "gpu_bw": 200},
+        "Apple M2 Max":   {"cpu_power": 35, "gpu_power": 60,  "cpu_bw": 400, "gpu_bw": 400},
+        "Apple M2 Ultra": {"cpu_power": 70, "gpu_power": 120, "cpu_bw": 800, "gpu_bw": 800},
+
+        # M3 series
+        "Apple M3":       {"cpu_power": 25, "gpu_power": 20,  "cpu_bw": 100, "gpu_bw": 100},
+        "Apple M3 Pro":   {"cpu_power": 30, "gpu_power": 35,  "cpu_bw": 150, "gpu_bw": 150},
+        "Apple M3 Max":   {"cpu_power": 35, "gpu_power": 60,  "cpu_bw": 400, "gpu_bw": 400},
+        "Apple M3 Ultra": {"cpu_power": 70, "gpu_power": 120, "cpu_bw": 819, "gpu_bw": 819},
+
+        # M4 series
+        "Apple M4":       {"cpu_power": 25, "gpu_power": 20,  "cpu_bw": 120, "gpu_bw": 120},
+        "Apple M4 Pro":   {"cpu_power": 35, "gpu_power": 40,  "cpu_bw": 273, "gpu_bw": 273},
+        "Apple M4 Max":   {"cpu_power": 40, "gpu_power": 70,  "cpu_bw": 546, "gpu_bw": 546},
+
+        # M5 series
+        "Apple M5":       {"cpu_power": 30, "gpu_power": 25,  "cpu_bw": 153, "gpu_bw": 153},
+        "Apple M5 Pro":   {"cpu_power": 40, "gpu_power": 45,  "cpu_bw": 307, "gpu_bw": 307},
+        "Apple M5 Max":   {"cpu_power": 45, "gpu_power": 80,  "cpu_bw": 614, "gpu_bw": 614},
+    }
+
+    spec = soc_specs.get(
+        soc_info["name"],
+        {"cpu_power": 20, "gpu_power": 20, "cpu_bw": 70, "gpu_bw": 70},
+    )
+
+    soc_info["cpu_max_power"] = spec["cpu_power"]
+    soc_info["gpu_max_power"] = spec["gpu_power"]
+    soc_info["cpu_max_bw"] = spec["cpu_bw"]
+    soc_info["gpu_max_bw"] = spec["gpu_bw"]
+
     return soc_info
