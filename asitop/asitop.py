@@ -6,8 +6,43 @@ import shutil
 import sys
 from collections import deque
 from blessed import Terminal
-from dashing import VSplit, HSplit, HGauge, HChart, VGauge
+from dashing import VSplit, HSplit, HGauge, HChart, VGauge, hbar_elements
 from .utils import *
+
+
+def _hgauge_display_fixed(self, tbox, parent):
+    tbox = self._draw_borders_and_title(tbox)
+    if self.label:
+        max_bar_w = tbox.w - len(self.label) - 3
+        wi = max_bar_w * self.value / 100
+        v_center = int((tbox.h) * 0.5)
+    else:
+        max_bar_w = tbox.w
+        wi = max_bar_w * self.value / 100.0
+    int_wi = min(int(wi), max_bar_w)
+    frac = wi - int(wi)
+    if frac > 0 and int_wi < max_bar_w:
+        index = int(frac * 7)
+        bar = hbar_elements[-1] * int_wi + hbar_elements[index]
+    else:
+        bar = hbar_elements[-1] * int_wi
+    if self.label:
+        pad = max(0, max_bar_w - len(bar))
+    else:
+        pad = max(0, tbox.w - len(bar))
+    bar += hbar_elements[0] * pad
+    for dx in range(0, tbox.h):
+        m = tbox.t.move(tbox.x + dx, tbox.y)
+        if self.label:
+            if dx == v_center:
+                print(m + self.label + " " + bar)
+            else:
+                print(m + " " * len(self.label) + " " + bar)
+        else:
+            print(m + bar)
+
+
+HGauge._display = _hgauge_display_fixed
 
 
 def build_parser():
