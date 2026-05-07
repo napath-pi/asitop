@@ -159,7 +159,7 @@ def parse_cpu_metrics(powermetrics_parse):
 def parse_gpu_metrics(powermetrics_parse):
     gpu_metrics = powermetrics_parse["gpu"]
     gpu_metrics_dict = {
-        "freq_MHz": int(gpu_metrics["freq_hz"]),
+        "freq_MHz": int(gpu_metrics["freq_hz"] / 1e6),
         "active": int((1 - gpu_metrics["idle_ratio"])*100),
     }
     return gpu_metrics_dict

@@ -2,7 +2,7 @@ import os
 import glob
 import tempfile
 import subprocess
-from subprocess import PIPE
+from subprocess import PIPE, DEVNULL
 import psutil
 from .parsers import *
 import plistlib
@@ -80,7 +80,11 @@ def run_powermetrics_process(timecode, nice=10, interval=1000):
         "-i",
         str(interval)
     ])
-    process = subprocess.Popen(command.split(" "), stdin=PIPE, stdout=PIPE)
+    process = subprocess.Popen(
+        command.split(" "),
+        stdin=DEVNULL,
+        stdout=DEVNULL,
+    )
     return process
 
 

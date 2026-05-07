@@ -3,6 +3,7 @@ import argparse
 import curses
 import os
 import shutil
+import subprocess
 import sys
 from collections import deque
 from blessed import Terminal
@@ -45,15 +46,49 @@ def _hgauge_display_fixed(self, tbox, parent):
 HGauge._display = _hgauge_display_fixed
 
 
+def _positive_int(value):
+    try:
+        ivalue = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer")
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} must be a positive integer (>= 1)")
+    return ivalue
+
+
+def _avg_window_maxlen(avg_seconds, interval_seconds):
+    return max(1, int(avg_seconds / interval_seconds))
+
+
+def _terminate_powermetrics_process(process, wait_seconds=2):
+    if process is None:
+        return
+    try:
+        if process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=wait_seconds)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+                process.wait(timeout=wait_seconds)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description='asitop: Performance monitoring CLI tool for Apple Silicon')
-    parser.add_argument('--interval', type=int, default=1,
-                        help='Display interval and sampling interval for powermetrics (seconds)')
+    parser.add_argument('--interval', type=_positive_int, default=1,
+                        help='Display interval and sampling interval for powermetrics (seconds, >= 1)')
     parser.add_argument('--color', type=int, default=2,
                         help='Choose display color (0~8)')
-    parser.add_argument('--avg', type=int, default=30,
-                        help='Interval for averaged values (seconds)')
+    parser.add_argument('--avg', type=_positive_int, default=30,
+                        help='Interval for averaged values (seconds, >= 1)')
     parser.add_argument('--show_cores', action='store_true',
                         help='Choose show cores mode')
     parser.add_argument('--max_count', type=int, default=0,
@@ -268,9 +303,10 @@ def main(argv=None):
         avg = sum(inlist) / len(inlist)
         return avg
 
-    avg_package_power_list = deque([], maxlen=int(args.avg / args.interval))
-    avg_cpu_power_list = deque([], maxlen=int(args.avg / args.interval))
-    avg_gpu_power_list = deque([], maxlen=int(args.avg / args.interval))
+    avg_window = _avg_window_maxlen(args.avg, args.interval)
+    avg_package_power_list = deque([], maxlen=avg_window)
+    avg_cpu_power_list = deque([], maxlen=avg_window)
+    avg_gpu_power_list = deque([], maxlen=avg_window)
 
     clear_console()
 
@@ -489,17 +525,12 @@ def main(argv=None):
 
     except KeyboardInterrupt:
         print("Stopping...")
+    finally:
+        _terminate_powermetrics_process(powermetrics_process)
         print("\033[?25h")
 
     return powermetrics_process
 
 
 if __name__ == "__main__":
-    powermetrics_process = main()
-    try:
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
-    except Exception as e:
-        print(e)
-        powermetrics_process.terminate()
-        print("Successfully terminated powermetrics process")
+    main()
